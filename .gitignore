@@ -1,0 +1,58 @@
+
+# Visual Studio / .NET files
+*.suo
+*.user
+*.userosscache
+*.sln.DotSettings.user
+*.DotSettings.user
+*.vs/
+*.vscode/
+*.idea/
+
+# Build results
+bin/
+obj/
+Debug/
+Release/
+
+# NuGet packages
+*.nupkg
+packages/
+*.snupkg
+
+# Logs
+*.log
+*.tlg
+*.tlodotnet format cmsUserManagment.sln --verbosity detailed
+g
+*.etl
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Docker / Compose
+compose.yaml
+docker-compose.override.yml
+docker-compose.*.yml
+
+# Global JSON
+global.json
+
+# Project specific ignores
+cmsAuth.sln.DotSettings.user
+cmsUserManagment.sln.DotSettings.user
+
+# Ignore compiled output
+cmsUserManagment.API/bin/
+cmsUserManagment.API/obj/
+cmsUserManagment.Application/bin/
+cmsUserManagment.Application/obj/
+cmsUserManagment.Domain/bin/
+cmsUserManagment.Domain/obj/
+cmsUserManagment.Infrastructure/bin/
+cmsUserManagment.Infrastructure/obj/
+
+# Keep README
+!README.md
+
