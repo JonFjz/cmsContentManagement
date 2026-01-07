@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using cmsContentManagment.Infrastructure.Persistance;
 
@@ -11,9 +12,11 @@ using cmsContentManagment.Infrastructure.Persistance;
 namespace cmsContentManagment.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260107215750_AddApiKeyEntity")]
+    partial class AddApiKeyEntity
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -96,9 +99,6 @@ namespace cmsContentManagment.Infrastructure.Migrations
                     b.Property<Guid?>("CategoryId")
                         .HasColumnType("char(36)");
 
-                    b.Property<DateTime>("CreatedOn")
-                        .HasColumnType("datetime(6)");
-
                     b.Property<string>("RichContent")
                         .HasColumnType("longtext");
 
@@ -108,9 +108,6 @@ namespace cmsContentManagment.Infrastructure.Migrations
 
                     b.Property<string>("Title")
                         .HasColumnType("longtext");
-
-                    b.Property<DateTime>("UpdatedOn")
-                        .HasColumnType("datetime(6)");
 
                     b.Property<Guid>("UserId")
                         .HasColumnType("char(36)");

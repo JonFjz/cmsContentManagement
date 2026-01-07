@@ -12,6 +12,14 @@ public class Content
     public string? RichContent {  get; set; }
 
     public string Status { get; set; } = "New";
+    public DateTime CreatedOn { get; set; } = DateTime.UtcNow;
+    public DateTime UpdatedOn { get; set; } = DateTime.UtcNow;
+
     [Required]
     public Guid UserId { get; set; }
+    
+    public Guid? CategoryId { get; set; }
+    public Category? Category { get; set; }
+    
+    public ICollection<Tag> Tags { get; set; } = new List<Tag>();
 }

@@ -1,3 +1,5 @@
+using System.Security.Claims;
+using cmsContentManagement.API.Extensions;
 using cmsContentManagement.Application.DTO;
 using cmsContentManagement.Application.Interfaces;
 using cmsContentManagement.Domain.Entities;
@@ -18,42 +20,57 @@ public class ContentManagmentController : ControllerBase
         _contentManagmentService = contentManagmentService;
     }
 
-    [HttpGet("{userId}/{contentId}")]
-    public async Task<Content> GetContents(Guid userId, Guid contentId)
+    [HttpGet("{contentId}")]
+    public async Task<ContentDTO> GetContents(Guid contentId)
     {
-        return await _contentManagmentService.getContentById(userId, contentId);
+        return await _contentManagmentService.getContentById(User.GetUserId(), contentId);
     }
 
     [HttpGet]
-    public async Task<List<Content>> GetAllContents([FromQuery] Guid userId)
-    {
-        return await _contentManagmentService.getAllContents(userId);
-    }
-
-    [HttpGet("search")]
-    public async Task<IReadOnlyCollection<Content>> SearchContents(
+    public async Task<List<ContentDTO>> FilterContents(
         [FromQuery] string? query,
-        [FromQuery] int size = 25
+        [FromQuery] string? tag,
+        [FromQuery] string? category,
+        [FromQuery] string? status,
+        [FromQuery] DateTime? fromDate,
+        [FromQuery] DateTime? toDate,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 25
     )
     {
-        return await _contentManagmentService.SearchContents(query, size);
+        return await _contentManagmentService.FilterContents(User.GetUserId(), query, tag, category, status, fromDate, toDate, page, pageSize);
     }
 
-    [HttpPut]
-    public async Task CreateContent([FromBody] ContentDTO content)
+    [HttpPost("{contentId}")]
+    public async Task<IActionResult> SaveContent(Guid contentId, [FromBody] SaveContentDTO content)
     {
-        await _contentManagmentService.UpdateContent(content);
+        await _contentManagmentService.CreateContent(User.GetUserId(), contentId, content);
+        return Ok();
     }
 
-    [HttpDelete("{userId}/{contentId}")]
-    public async Task DeleteContent(Guid userId, Guid contentId)
+    [HttpPut("{contentId}")]
+    public async Task<IActionResult> UpdateContent(Guid contentId, [FromBody] SaveContentDTO content)
     {
-        await _contentManagmentService.DeleteContent(userId, contentId);
+        await _contentManagmentService.UpdateContent(User.GetUserId(), contentId, content);
+        return Ok();
+    }
+
+    [HttpPost("{contentId}/unpublish")]
+    public async Task<IActionResult> UnpublishContent(Guid contentId)
+    {
+        await _contentManagmentService.UnpublishContent(User.GetUserId(), contentId);
+        return Ok();
+    }
+
+    [HttpDelete("{contentId}")]
+    public async Task DeleteContent(Guid contentId)
+    {
+        await _contentManagmentService.DeleteContent(User.GetUserId(), contentId);
     }
 
     [HttpGet("generate-new-id")]
-    public async Task<Guid> GenerateNewContentId(Guid userId)
+    public async Task<Guid> GenerateNewContentId()
     {
-        return await _contentManagmentService.GenerateNewContentId(userId);
+        return await _contentManagmentService.GenerateNewContentId(User.GetUserId());
     }
 }
