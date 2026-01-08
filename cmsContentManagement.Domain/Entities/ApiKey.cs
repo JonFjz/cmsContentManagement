@@ -11,7 +11,7 @@ public class ApiKey
     public Guid UserId { get; set; }
     
     [Required]
-    public string Key { get; set; }
+    public string Key { get; set; } = string.Empty;
     
     public string Description { get; set; } = string.Empty;
     

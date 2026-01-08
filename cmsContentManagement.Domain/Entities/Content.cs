@@ -9,6 +9,7 @@ public class Content
     [Url]
     public string? AssetUrl  { get; set; }
     public string? Title { get; set; }
+    public string? Slug { get; set; }
     public string? RichContent {  get; set; }
 
     public string Status { get; set; } = "New";

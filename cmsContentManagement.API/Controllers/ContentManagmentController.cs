@@ -35,10 +35,11 @@ public class ContentManagmentController : ControllerBase
         [FromQuery] DateTime? fromDate,
         [FromQuery] DateTime? toDate,
         [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 25
+        [FromQuery] int pageSize = 25,
+        [FromQuery] bool withElastic = false
     )
     {
-        return await _contentManagmentService.FilterContents(User.GetUserId(), query, tag, category, status, fromDate, toDate, page, pageSize);
+        return await _contentManagmentService.FilterContents(User.GetUserId(), query, tag, category, status, fromDate, toDate, page, pageSize, withElastic);
     }
 
     [HttpPost("{contentId}")]
