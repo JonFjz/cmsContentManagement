@@ -19,9 +19,9 @@ public class TagController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<List<Tag>> GetAllTags()
+    public async Task<List<Tag>> GetAllTags([FromQuery] int page = 1, [FromQuery] int pageSize = 10)
     {
-        return await _tagService.GetAllTags();
+        return await _tagService.GetAllTags(page, pageSize);
     }
 
     [HttpGet("{id}")]

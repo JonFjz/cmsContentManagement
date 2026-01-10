@@ -15,9 +15,13 @@ public class TagService : ITagService
         _dbContext = dbContext;
     }
 
-    public async Task<List<Tag>> GetAllTags()
+    public async Task<List<Tag>> GetAllTags(int page, int pageSize)
     {
-        return await _dbContext.Tags.ToListAsync();
+        return await _dbContext.Tags
+            .OrderBy(t => t.Name)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
     }
 
     public async Task<Tag?> GetTagById(Guid id)

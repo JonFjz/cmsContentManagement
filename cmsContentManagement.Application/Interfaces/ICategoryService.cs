@@ -5,7 +5,7 @@ namespace cmsContentManagement.Application.Interfaces;
 
 public interface ICategoryService
 {
-    Task<List<Category>> GetAllCategories();
+    Task<List<Category>> GetAllCategories(int page, int pageSize);
     Task<Category?> GetCategoryById(Guid id);
     Task<Category> CreateCategory(CreateCategoryDTO categoryDto);
     Task UpdateCategory(CategoryDTO categoryDto);

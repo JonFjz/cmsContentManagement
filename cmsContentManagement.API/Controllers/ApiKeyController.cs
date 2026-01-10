@@ -66,7 +66,7 @@ public class ApiKeyController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<List<ApiKeyResponse>>> GetMyApiKeys()
+    public async Task<ActionResult<List<ApiKeyResponse>>> GetMyApiKeys([FromQuery] int page = 1, [FromQuery] int pageSize = 10)
     {
         var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out Guid userId))
@@ -76,7 +76,7 @@ public class ApiKeyController : ControllerBase
              else return Unauthorized("User ID not found in token.");
         }
 
-        var keys = await _apiKeyService.GetUserApiKeysAsync(userId);
+        var keys = await _apiKeyService.GetUserApiKeysAsync(userId, page, pageSize);
         return Ok(keys.Select(k => new ApiKeyResponse
         {
             Id = k.Id,

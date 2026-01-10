@@ -19,9 +19,9 @@ public class CategoryController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<List<Category>> GetAllCategories()
+    public async Task<List<Category>> GetAllCategories([FromQuery] int page = 1, [FromQuery] int pageSize = 10)
     {
-        return await _categoryService.GetAllCategories();
+        return await _categoryService.GetAllCategories(page, pageSize);
     }
 
     [HttpGet("{id}")]

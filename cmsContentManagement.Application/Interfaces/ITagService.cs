@@ -5,7 +5,7 @@ namespace cmsContentManagement.Application.Interfaces;
 
 public interface ITagService
 {
-    Task<List<Tag>> GetAllTags();
+    Task<List<Tag>> GetAllTags(int page, int pageSize);
     Task<Tag?> GetTagById(Guid id);
     Task<Tag> CreateTag(CreateTagDTO tagDto);
     Task UpdateTag(TagDTO tagDto);
