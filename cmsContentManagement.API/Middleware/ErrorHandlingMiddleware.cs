@@ -19,9 +19,13 @@ public class ErrorHandlingMiddleware
         {
             await _next(context);
         }
+        catch (GeneralErrorCodes ex)
+        {
+            await HandleCustomErrorAsync(context, ex);
+        }
         catch (AuthErrorCodes ex)
         {
-            await HandleCustomErrorAsync(context, ex, HttpStatusCode.BadRequest);
+            await HandleCustomAuthErrorAsync(context, ex, HttpStatusCode.BadRequest);
         }
         catch (Exception ex)
         {
@@ -30,6 +34,39 @@ public class ErrorHandlingMiddleware
     }
 
     private static Task HandleCustomErrorAsync(
+        HttpContext context,
+        GeneralErrorCodes error)
+    {
+        context.Response.ContentType = "application/json";
+        
+        HttpStatusCode status = error.Code switch
+        {
+            1 => HttpStatusCode.NotFound,
+            2 => HttpStatusCode.Conflict,
+            3 => HttpStatusCode.BadRequest,
+            4 => HttpStatusCode.InternalServerError,
+            5 => HttpStatusCode.InternalServerError,
+            6 => HttpStatusCode.Conflict,
+            7 => HttpStatusCode.ServiceUnavailable,
+            8 => HttpStatusCode.Forbidden,
+            9 => HttpStatusCode.BadRequest,
+            11 => HttpStatusCode.BadRequest,
+            12 => HttpStatusCode.BadRequest,
+            13 => HttpStatusCode.BadRequest,
+            14 => HttpStatusCode.Conflict,
+            15 => HttpStatusCode.BadRequest,
+            16 => HttpStatusCode.BadRequest,
+            _ => HttpStatusCode.InternalServerError
+        };
+
+        context.Response.StatusCode = (int) status;
+
+        string result = JsonSerializer.Serialize(new { error.Code, error.Message });
+
+        return context.Response.WriteAsync(result);
+    }
+
+    private static Task HandleCustomAuthErrorAsync(
         HttpContext context,
         AuthErrorCodes error,
         HttpStatusCode status)

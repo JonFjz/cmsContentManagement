@@ -1,6 +1,35 @@
 @cmsContentManagment_HostAddress = http://localhost:5254
+@token = PLACEHOLDER_FOR_JWT
 
-GET {{cmsContentManagment_HostAddress}}/weatherforecast/
+### Generate API Key (Login with JWT first and put existing token here if needed to test)
+# This endpoint requires JWT authentication as per [Authorize] attribute on ApiKeyController
+# Since we removed AuthController, you need to obtain JWT using your existing Auth mechanism (if any, or I can add a fake one again if requested)
+POST {{cmsContentManagment_HostAddress}}/ApiKey/generate
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "description": "Website A Integration"
+}
+
+### Response will contain "key". Copy that key.
+@apiKey = YOUR_GENERATED_API_KEY
+
+### Get All Contents using API Key (Only GET allowed)
+GET {{cmsContentManagment_HostAddress}}/ContentManagment?userId=3fa85f64-5717-4562-b3fc-2c963f66afa6
+X-Api-Key: {{apiKey}}
 Accept: application/json
 
-###
+### Try to Create Content using API Key (Should fail with 403 Forbidden)
+PUT {{cmsContentManagment_HostAddress}}/ContentManagment
+X-Api-Key: {{apiKey}}
+Content-Type: application/json
+
+{
+  "title": "Should Fail"
+}
+
+### Revoke API Key (Requires JWT)
+# Replace {keyId} with the ID from generate response
+DELETE {{cmsContentManagment_HostAddress}}/ApiKey/{keyId}
+Authorization: Bearer {{token}}

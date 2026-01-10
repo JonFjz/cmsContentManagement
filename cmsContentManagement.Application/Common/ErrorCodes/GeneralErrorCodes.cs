@@ -47,4 +47,16 @@ public class GeneralErrorCodes : Exception
 
     public static GeneralErrorCodes InvalidEmailFormat
         => new(13, "Email format is invalid.");
+
+    public static GeneralErrorCodes ContentAlreadyExists
+        => new(14, "Content already exists. Use PUT to update.");
+
+    public static GeneralErrorCodes ContentIsNew
+        => new(15, "Content is new. Use POST to create.");
+
+    public static GeneralErrorCodes TagNotFound(string tagName)
+        => new(16, $"Tag '{tagName}' does not exist.");
+
+    public static GeneralErrorCodes InvalidApiKey
+        => new(17, "Invalid API Key");
 }

@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using cmsContentManagment.Infrastructure.Persistance;
 
@@ -11,9 +12,11 @@ using cmsContentManagment.Infrastructure.Persistance;
 namespace cmsContentManagment.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260107214318_AddCategoriesAndTags")]
+    partial class AddCategoriesAndTags
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -21,21 +24,6 @@ namespace cmsContentManagment.Infrastructure.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 64);
 
             MySqlModelBuilderExtensions.AutoIncrementColumns(modelBuilder);
-
-            modelBuilder.Entity("ContentCreator", b =>
-                {
-                    b.Property<Guid>("ContentsContentId")
-                        .HasColumnType("char(36)");
-
-                    b.Property<Guid>("CreatorsCreatorId")
-                        .HasColumnType("char(36)");
-
-                    b.HasKey("ContentsContentId", "CreatorsCreatorId");
-
-                    b.HasIndex("CreatorsCreatorId");
-
-                    b.ToTable("ContentCreator");
-                });
 
             modelBuilder.Entity("ContentTag", b =>
                 {
@@ -50,34 +38,6 @@ namespace cmsContentManagment.Infrastructure.Migrations
                     b.HasIndex("TagsTagId");
 
                     b.ToTable("ContentTag");
-                });
-
-            modelBuilder.Entity("cmsContentManagement.Domain.Entities.ApiKey", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("char(36)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("tinyint(1)");
-
-                    b.Property<string>("Key")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("char(36)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("ApiKeys");
                 });
 
             modelBuilder.Entity("cmsContentManagement.Domain.Entities.Category", b =>
@@ -111,13 +71,7 @@ namespace cmsContentManagment.Infrastructure.Migrations
                     b.Property<Guid?>("CategoryId")
                         .HasColumnType("char(36)");
 
-                    b.Property<DateTime>("CreatedOn")
-                        .HasColumnType("datetime(6)");
-
                     b.Property<string>("RichContent")
-                        .HasColumnType("longtext");
-
-                    b.Property<string>("Slug")
                         .HasColumnType("longtext");
 
                     b.Property<string>("Status")
@@ -127,9 +81,6 @@ namespace cmsContentManagment.Infrastructure.Migrations
                     b.Property<string>("Title")
                         .HasColumnType("longtext");
 
-                    b.Property<DateTime>("UpdatedOn")
-                        .HasColumnType("datetime(6)");
-
                     b.Property<Guid>("UserId")
                         .HasColumnType("char(36)");
 
@@ -138,26 +89,6 @@ namespace cmsContentManagment.Infrastructure.Migrations
                     b.HasIndex("CategoryId");
 
                     b.ToTable("Contents");
-                });
-
-            modelBuilder.Entity("cmsContentManagement.Domain.Entities.Creator", b =>
-                {
-                    b.Property<Guid>("CreatorId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("char(36)");
-
-                    b.Property<string>("Description")
-                        .HasColumnType("longtext");
-
-                    b.Property<string>("Email")
-                        .HasColumnType("longtext");
-
-                    b.Property<string>("Name")
-                        .HasColumnType("longtext");
-
-                    b.HasKey("CreatorId");
-
-                    b.ToTable("Creators");
                 });
 
             modelBuilder.Entity("cmsContentManagement.Domain.Entities.Tag", b =>
@@ -174,21 +105,6 @@ namespace cmsContentManagment.Infrastructure.Migrations
                     b.HasKey("TagId");
 
                     b.ToTable("Tags");
-                });
-
-            modelBuilder.Entity("ContentCreator", b =>
-                {
-                    b.HasOne("cmsContentManagement.Domain.Entities.Content", null)
-                        .WithMany()
-                        .HasForeignKey("ContentsContentId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("cmsContentManagement.Domain.Entities.Creator", null)
-                        .WithMany()
-                        .HasForeignKey("CreatorsCreatorId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
                 });
 
             modelBuilder.Entity("ContentTag", b =>
