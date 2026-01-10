@@ -4,6 +4,7 @@ using cmsContentManagement.Middleware;
 using cmsContentManagement.API.Middleware;
 using cmsContentManagment.Infrastructure.Persistance;
 using cmsContentManagment.Infrastructure.Repositories;
+using cmsContentManagement.Infrastructure.Messaging;
 using Microsoft.OpenApi.Models;
 using Elastic.Clients.Elasticsearch;
 using Elastic.Transport;
@@ -79,6 +80,9 @@ builder.Services.AddScoped<IContentManagmentService, ContentManagmentService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<ITagService, TagService>();
 builder.Services.AddScoped<IApiKeyService, ApiKeyService>();
+
+builder.Services.Configure<KafkaSettings>(builder.Configuration.GetSection("KafkaSettings"));
+builder.Services.AddHostedService<KafkaConsumerService>();
 
 var app = builder.Build();
 app.UseMiddleware<ErrorHandlingMiddleware>();

@@ -250,20 +250,14 @@ public class ContentManagmentService : IContentManagmentService
         contentToBeUpdated.Title = content.Title;
         if (string.IsNullOrEmpty(contentToBeUpdated.Slug) && !string.IsNullOrWhiteSpace(content.Title))
         {
-             // Generate slug from title: /{title}
-             // Simple slugification: lowercase, spaces to dashes
-             // User requested specific format: /{title}
-             // Assuming basic slug-ification is desired for URLs.
              var slugTitle = content.Title.Trim().ToLowerInvariant().Replace(" ", "-");
-             // Encode other characters? Simplest is regex replacement of non-alphanumeric.
-             // For now, keeping it simple as per "should be /{title}"
              contentToBeUpdated.Slug = $"/{slugTitle}";
         }
 
         contentToBeUpdated.RichContent = content.RichContent;
+
         contentToBeUpdated.AssetUrl = content.AssetUrl;
         
-        // Handle Category by Name
         if (!string.IsNullOrWhiteSpace(content.CategoryName))
         {
             var category = await _dbContext.Categories.FirstOrDefaultAsync(c => c.Name == content.CategoryName);
@@ -295,7 +289,6 @@ public class ContentManagmentService : IContentManagmentService
 
         contentToBeUpdated.UpdatedOn = DateTime.UtcNow;
 
-        // Update Tags by Name
         contentToBeUpdated.Tags.Clear();
         if (content.Tags != null && content.Tags.Any())
         {
@@ -344,6 +337,29 @@ public class ContentManagmentService : IContentManagmentService
         if (content == null) throw GeneralErrorCodes.NotFound;
 
         content.AssetUrl = assetUrl;
+
+        await _dbContext.SaveChangesAsync();
+        await IndexContentAsync(content);
+        if (!string.IsNullOrEmpty(content.Slug))
+        {
+            await _cache.RemoveAsync(content.Slug);
+        }
+    }
+
+    public async Task UpdateContentAssetUrl(Guid contentId, string assetUrl)
+    {
+        var content = await _dbContext.Contents
+            .Include(c => c.Category)
+            .Include(c => c.Tags)
+            .FirstOrDefaultAsync(e => e.ContentId == contentId);
+        if (content == null) throw GeneralErrorCodes.NotFound;
+
+        content.AssetUrl = assetUrl;
+
+        if (content.Status == "New")
+        {
+            content.Status = "Draft";
+        }
 
         await _dbContext.SaveChangesAsync();
         await IndexContentAsync(content);
@@ -574,12 +590,8 @@ public class ContentManagmentService : IContentManagmentService
         {
              var cachedDto = JsonSerializer.Deserialize<ContentDTO>(cachedContent)!;
              
-             // Ensure the content belongs to the requesting user
              if (cachedDto.UserId != key.UserId)
              {
-                 // Cache contains data for another user at this slug.
-                 // Treat as a cache miss for the requester.
-                 // NOTE: This might cause cache thrashing if multiple users contend for the same slug.
                  goto FetchFromDb;
              }
 
@@ -613,21 +625,13 @@ public class ContentManagmentService : IContentManagmentService
         var content = await _dbContext.Contents
             .Include(c => c.Category)
             .Include(c => c.Tags)
-            .FirstOrDefaultAsync(c => c.Slug == slug && c.Status == "Published"); // Assuming exact match on stored slug
+            .FirstOrDefaultAsync(c => c.Slug == slug && c.Status == "Published");
 
-        // If not found in DB at all, it's 404
         if (content == null) throw GeneralErrorCodes.NotFound;
         
-        // If found but belongs to another user
         if (content.UserId != key.UserId)
         {
-             // If we found content but it's not yours, treat as NotFound.
-             // We do NOT want to cache this 404 behavior globally via "slug" because then the Owner WOULD get 404.
-             // But we also don't want to overwrite the cache with THIS user's "Nothing found".
-             // If we found content for User A, but User B requested it:
-             // We return 404 to User B.
-             // We do NOT cache anything.
-             // If the cache key exists (User A's content), next request by User B will also miss/hit cache and mismatch.
+             // Do not cache this 404 to prevent overwriting valid cache for the owner.
              throw GeneralErrorCodes.NotFound;
         }
 

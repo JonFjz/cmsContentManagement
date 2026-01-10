@@ -14,4 +14,5 @@ public interface IContentManagmentService
     public Task AddAssetUrlToContent(Guid userId, Guid contentId, string assetUrl);
     public Task<List<PublicContentDTO>> GetPublicContents(string? query, string? tag, string? category, DateTime? fromDate, DateTime? toDate, int page, int pageSize, bool withElastic = false, string? apiKey = null);
     public Task<PublicContentDTO> GetPublicContentBySlug(string slug, string apiKey);
+    public Task UpdateContentAssetUrl(Guid contentId, string assetUrl);
 }
