@@ -51,10 +51,13 @@ public class ApiKeyService : IApiKeyService
             .FirstOrDefaultAsync(k => k.Key == key && k.IsActive);
     }
 
-    public async Task<List<ApiKey>> GetUserApiKeysAsync(Guid userId)
+    public async Task<List<ApiKey>> GetUserApiKeysAsync(Guid userId, int page, int pageSize)
     {
         return await _context.ApiKeys
             .Where(k => k.UserId == userId)
+            .OrderByDescending(k => k.CreatedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
             .ToListAsync();
     }
 

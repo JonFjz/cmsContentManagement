@@ -15,9 +15,13 @@ public class CategoryService : ICategoryService
         _dbContext = dbContext;
     }
 
-    public async Task<List<Category>> GetAllCategories()
+    public async Task<List<Category>> GetAllCategories(int page, int pageSize)
     {
-        return await _dbContext.Categories.ToListAsync();
+        return await _dbContext.Categories
+            .OrderBy(c => c.Name)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
     }
 
     public async Task<Category?> GetCategoryById(Guid id)

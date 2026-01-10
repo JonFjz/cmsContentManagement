@@ -7,5 +7,5 @@ public interface IApiKeyService
     Task<ApiKey> GenerateApiKeyAsync(Guid userId, string description);
     Task<bool> RevokeApiKeyAsync(Guid userId, Guid keyId);
     Task<ApiKey?> ValidateApiKeyAsync(string key);
-    Task<List<ApiKey>> GetUserApiKeysAsync(Guid userId);
+    Task<List<ApiKey>> GetUserApiKeysAsync(Guid userId, int page, int pageSize);
 }
