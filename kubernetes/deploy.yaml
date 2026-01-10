@@ -37,15 +37,12 @@ spec:
             - name: ElasticSettings__Url
               value: "http://elasticsearch:9200"
 
-            # JWT Settings
             - name: JwtSettings__Issuer
               value: "cms"
             - name: JwtSettings__Audience
               value: "account"
             - name: JwtSettings__ExpiryMinutes
               value: "60"
-            - name: JwtSettings__Secret
-              value: "4ba5b968796f41d8de85d6063fe4929d2cb649594090b9d778e54680ec273341"
 
 ---
 apiVersion: v1
