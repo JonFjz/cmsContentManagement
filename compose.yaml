@@ -1,0 +1,82 @@
+﻿version: '3.9'
+services:
+  cmscontentmanagement:
+    build:
+      context: .
+      dockerfile: cmsContentManagement.API/Dockerfile
+    depends_on:
+      - mysql
+      - redis
+    environment:
+      ConnectionStrings__DefaultConnection: 'Server=mysql;Database=auth;Uid=user;Pwd=alskjdfa@alskdjfAAAb12;'
+      JwtSettings__Issuer: 'cms'
+      JwtSettings__Audience: 'account'
+      JwtSettings__ExpiryMinutes: '60'
+      KafkaSettings__BootstrapServers: 'kafka:9092'
+      KafkaSettings__Topic: 'files.uploaded'
+      Redis__Connection: 'redis:6379'
+      ElasticSettings__Url: 'http://elasticsearch:9200'
+    ports:
+      - '5054:8080'
+    networks:
+      - cmscontentnetwork
+      - kafka-net
+
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_DATABASE: auth
+      MYSQL_USER: user
+      MYSQL_PASSWORD: 'alskjdfa@alskdjfAAAb12'
+      MYSQL_ROOT_PASSWORD: 'rootPassword123!'
+    ports:
+      - '33062:3306' # Host port can be different
+    volumes:
+      - mysql-data:/var/lib/mysql
+    networks:
+      - cmscontentnetwork
+
+  redis:
+    image: redis:7
+    ports:
+      - '6380:6379' # Host port different
+    volumes:
+      - redis-data:/data
+    networks:
+      - cmscontentnetwork
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.1
+    container_name: elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+    ports:
+      - '9200:9200'
+    networks:
+      - elastic
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.11.1
+    container_name: kibana
+    ports:
+      - '5601:5601'
+    depends_on:
+      - elasticsearch
+    environment:
+      - 'ELASTICSEARCH_HOSTS=http://elasticsearch:9200'
+    networks:
+      - elastic
+
+volumes:
+  mysql-data:
+  redis-data:
+
+networks:
+  cmscontentnetwork:
+    driver: bridge
+  kafka-net:
+    external: true
+    name: nest-s3-kafka_default
+  elastic:
+    driver: bridge

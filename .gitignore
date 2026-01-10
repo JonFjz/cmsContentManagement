@@ -32,7 +32,6 @@ g
 Thumbs.db
 
 # Docker / Compose
-compose.yaml
 docker-compose.override.yml
 docker-compose.*.yml
 
