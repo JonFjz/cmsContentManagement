@@ -42,13 +42,6 @@ public class ContentManagmentController : ControllerBase
         return await _contentManagmentService.FilterContents(User.GetUserId(), query, tag, category, status, fromDate, toDate, page, pageSize, withElastic);
     }
 
-    [HttpPost("{contentId}")]
-    public async Task<IActionResult> SaveContent(Guid contentId, [FromBody] SaveContentDTO content)
-    {
-        await _contentManagmentService.CreateContent(User.GetUserId(), contentId, content);
-        return Ok();
-    }
-
     [HttpPut("{contentId}")]
     public async Task<IActionResult> UpdateContent(Guid contentId, [FromBody] SaveContentDTO content)
     {

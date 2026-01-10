@@ -233,23 +233,6 @@ public class ContentManagmentService : IContentManagmentService
         }
     }
 
-    public async Task CreateContent(Guid userId, Guid contentId, SaveContentDTO content)
-    {
-        var contentToBeUpdated = await _dbContext.Contents
-            .Include(c => c.Tags)
-            .Include(c => c.Category)
-            .FirstOrDefaultAsync(e => e.UserId == userId && e.ContentId == contentId);
-        
-        if (contentToBeUpdated == null) throw GeneralErrorCodes.NotFound;
-
-        if (contentToBeUpdated.Status != "New")
-        {
-            throw GeneralErrorCodes.ContentAlreadyExists;
-        }
-
-        await DoSaveContent(contentToBeUpdated, content);
-    }
-
     public async Task UpdateContent(Guid userId, Guid contentId, SaveContentDTO content)
     {
         var contentToBeUpdated = await _dbContext.Contents
@@ -258,11 +241,6 @@ public class ContentManagmentService : IContentManagmentService
             .FirstOrDefaultAsync(e => e.UserId == userId && e.ContentId == contentId);
         
         if (contentToBeUpdated == null) throw GeneralErrorCodes.NotFound;
-
-        if (contentToBeUpdated.Status == "New")
-        {
-            throw GeneralErrorCodes.ContentIsNew;
-        }
 
         await DoSaveContent(contentToBeUpdated, content);
     }
@@ -283,6 +261,7 @@ public class ContentManagmentService : IContentManagmentService
         }
 
         contentToBeUpdated.RichContent = content.RichContent;
+        contentToBeUpdated.AssetUrl = content.AssetUrl;
         
         // Handle Category by Name
         if (!string.IsNullOrWhiteSpace(content.CategoryName))
