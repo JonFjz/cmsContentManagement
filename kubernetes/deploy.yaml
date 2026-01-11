@@ -35,7 +35,7 @@ spec:
               value: "files.uploaded"
             
             - name: ElasticSettings__Url
-              value: "http://elasticsearch:9200"
+              value: "http://elasticsearch-es-internal-http:9200"
 
             - name: JwtSettings__Issuer
               value: "cms"
