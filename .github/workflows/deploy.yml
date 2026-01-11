@@ -18,7 +18,7 @@ jobs:
         run: |
           docker build \
             -t cmscontentmanagement:latest \
-            -f cmsContentManagment.API/Dockerfile \
+            -f cmsContentManagement.API/Dockerfile \
             .
 
       - name: Import Docker Image
