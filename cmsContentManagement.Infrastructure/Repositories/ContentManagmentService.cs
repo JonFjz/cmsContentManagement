@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using cmsContentManagement.Application.Common.ErrorCodes;
 using cmsContentManagement.Application.Common.Settings;
 using cmsContentManagement.Application.DTO;
@@ -13,8 +14,6 @@ using Elastic.Clients.Elasticsearch.QueryDsl;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Microsoft.Extensions.Caching.Distributed;
-using System.Text.Json;
 
 namespace cmsContentManagment.Infrastructure.Repositories;
 
@@ -25,22 +24,19 @@ public class ContentManagmentService : IContentManagmentService
     private readonly ElasticSettings _elasticSettings;
     private readonly ILogger<ContentManagmentService> _logger;
     private readonly IApiKeyService _apiKeyService;
-    private readonly IDistributedCache _cache;
 
     public ContentManagmentService(
         AppDbContext dbContext,
         ElasticsearchClient elasticClient,
         IOptions<ElasticSettings> elasticOptions,
         ILogger<ContentManagmentService> logger,
-        IApiKeyService apiKeyService,
-        IDistributedCache cache)
+        IApiKeyService apiKeyService)
     {
         _dbContext = dbContext;
         _elasticClient = elasticClient;
         _logger = logger;
         _elasticSettings = elasticOptions.Value;
         _apiKeyService = apiKeyService;
-        _cache = cache;
     }
 
     public async Task<Guid> GenerateNewContentId(Guid userId)
@@ -60,29 +56,14 @@ public class ContentManagmentService : IContentManagmentService
         return content.ContentId;
     }
 
-    public async Task<ContentDTO> getContentById(Guid userId, Guid contentId)
+    public async Task<Content> getContentById(Guid userId, Guid contentId)
     {
         var content = await _dbContext.Contents
-            .Include(c => c.Category)
-            .Include(c => c.Tags)
             .FirstOrDefaultAsync(e => e.UserId == userId && e.ContentId == contentId);
         
         if (content == null) throw GeneralErrorCodes.NotFound;
 
-        return new ContentDTO
-        {
-            ContentId = content.ContentId,
-            AssetUrl = content.AssetUrl,
-            Status = content.Status,
-            Title = content.Title,
-            RichContent = content.RichContent,
-            UserId = content.UserId,
-            CategoryId = content.CategoryId,
-            CategoryName = content.Category?.Name,
-            CreatedOn = content.CreatedOn,
-            UpdatedOn = content.UpdatedOn,
-            Tags = content.Tags.Select(t => new TagDTO { TagId = t.TagId, Name = t.Name }).ToList()
-        };
+        return content;
     }
 
     public async Task<List<ContentDTO>> FilterContents(Guid userId, string? query, string? tag, string? category, string? status, DateTime? fromDate, DateTime? toDate, int page, int pageSize, bool withElastic = false)
@@ -99,7 +80,7 @@ public class ContentManagmentService : IContentManagmentService
                     {
                         var must = new List<Action<QueryDescriptor<Content>>>();
 
-                        must.Add(m => m.Term(t => t.Field("userId.keyword").Value(userId.ToString())));
+                        must.Add(m => m.Term(t => t.Field(f => f.UserId.Suffix("keyword")).Value(userId.ToString())));
                         b.MustNot(mn => mn.Term(t => t.Field(f => f.Status.Suffix("keyword")).Value("Deleted")));
 
                         if (!string.IsNullOrWhiteSpace(query))
@@ -107,7 +88,7 @@ public class ContentManagmentService : IContentManagmentService
                             must.Add(m => m.MultiMatch(mm => mm
                                 .Fields(new [] { "title", "richContent" })
                                 .Query(query)
-                                .Fuzziness(new Fuzziness("AUTO"))
+                                .Fuzziness(new Fuzziness(7))
                             ));
                         }
 
@@ -150,6 +131,7 @@ public class ContentManagmentService : IContentManagmentService
                     Status = c.Status,
                     Title = c.Title,
                     RichContent = c.RichContent,
+                    Slug = c.Slug,
                     UserId = c.UserId,
                     CategoryId = c.CategoryId,
                     CategoryName = c.Category?.Name,
@@ -210,6 +192,7 @@ public class ContentManagmentService : IContentManagmentService
             Status = c.Status,
             Title = c.Title,
             RichContent = c.RichContent,
+            Slug = c.Slug,
             UserId = c.UserId,
             CategoryId = c.CategoryId,
             CategoryName = c.Category?.Name,
@@ -227,10 +210,6 @@ public class ContentManagmentService : IContentManagmentService
         content.Status = "Deleted";
         await _dbContext.SaveChangesAsync();
         await RemoveContentFromIndexAsync(contentId);
-        if (!string.IsNullOrEmpty(content.Slug))
-        {
-            await _cache.RemoveAsync(content.Slug);
-        }
     }
 
     public async Task UpdateContent(Guid userId, Guid contentId, SaveContentDTO content)
@@ -248,10 +227,47 @@ public class ContentManagmentService : IContentManagmentService
     private async Task DoSaveContent(Content contentToBeUpdated, SaveContentDTO content)
     {
         contentToBeUpdated.Title = content.Title;
-        if (string.IsNullOrEmpty(contentToBeUpdated.Slug) && !string.IsNullOrWhiteSpace(content.Title))
+
+        if (string.IsNullOrEmpty(contentToBeUpdated.Slug))
         {
-             var slugTitle = content.Title.Trim().ToLowerInvariant().Replace(" ", "-");
-             contentToBeUpdated.Slug = $"/{slugTitle}";
+            if (!string.IsNullOrWhiteSpace(content.Title))
+            {
+                var slugTitle = content.Title.Trim().ToLowerInvariant();
+                slugTitle = Regex.Replace(slugTitle, "\\s+", "-");
+                slugTitle = Regex.Replace(slugTitle, "[^a-z0-9-]", string.Empty);
+                var generatedSlug = $"/{slugTitle}";
+
+                var exists = await _dbContext.Contents.AnyAsync(c =>
+                    c.UserId == contentToBeUpdated.UserId
+                    && c.ContentId != contentToBeUpdated.ContentId
+                    && c.Status != "Deleted"
+                    && (c.Title == content.Title || c.Slug == generatedSlug)
+                );
+
+                if (exists)
+                {
+                    throw GeneralErrorCodes.Conflict;
+                }
+
+                contentToBeUpdated.Slug = generatedSlug;
+            }
+        }
+        else
+        {
+            if (!string.IsNullOrWhiteSpace(content.Title))
+            {
+                var titleExists = await _dbContext.Contents.AnyAsync(c =>
+                    c.UserId == contentToBeUpdated.UserId
+                    && c.ContentId != contentToBeUpdated.ContentId
+                    && c.Status != "Deleted"
+                    && c.Title == content.Title
+                );
+
+                if (titleExists)
+                {
+                    throw GeneralErrorCodes.Conflict;
+                }
+            }
         }
 
         contentToBeUpdated.RichContent = content.RichContent;
@@ -305,10 +321,6 @@ public class ContentManagmentService : IContentManagmentService
 
         await _dbContext.SaveChangesAsync();
         await IndexContentAsync(contentToBeUpdated);
-        if (!string.IsNullOrEmpty(contentToBeUpdated.Slug))
-        {
-            await _cache.RemoveAsync(contentToBeUpdated.Slug);
-        }
     }
 
     public async Task UnpublishContent(Guid userId, Guid contentId)
@@ -322,10 +334,6 @@ public class ContentManagmentService : IContentManagmentService
         content.Status = "Unpublished";
         await _dbContext.SaveChangesAsync();
         await IndexContentAsync(content);
-        if (!string.IsNullOrEmpty(content.Slug))
-        {
-            await _cache.RemoveAsync(content.Slug);
-        }
     }
 
     public async Task AddAssetUrlToContent(Guid userId, Guid contentId, string assetUrl)
@@ -340,10 +348,6 @@ public class ContentManagmentService : IContentManagmentService
 
         await _dbContext.SaveChangesAsync();
         await IndexContentAsync(content);
-        if (!string.IsNullOrEmpty(content.Slug))
-        {
-            await _cache.RemoveAsync(content.Slug);
-        }
     }
 
     public async Task UpdateContentAssetUrl(Guid contentId, string assetUrl)
@@ -363,10 +367,6 @@ public class ContentManagmentService : IContentManagmentService
 
         await _dbContext.SaveChangesAsync();
         await IndexContentAsync(content);
-        if (!string.IsNullOrEmpty(content.Slug))
-        {
-            await _cache.RemoveAsync(content.Slug);
-        }
     }
 
     public async Task<List<PublicContentDTO>> GetPublicContents(string? query, string? tag, string? category, DateTime? fromDate, DateTime? toDate, int page, int pageSize, bool withElastic = false, string? apiKey = null)
@@ -397,7 +397,7 @@ public class ContentManagmentService : IContentManagmentService
 
                         if (userId.HasValue)
                         {
-                            must.Add(m => m.Term(t => t.Field(f => f.UserId).Value(userId.Value.ToString())));
+                            must.Add(m => m.Term(t => t.Field(f => f.UserId.Suffix("keyword")).Value(userId.Value.ToString())));
                         }
 
                         if (!string.IsNullOrWhiteSpace(query))
@@ -405,7 +405,7 @@ public class ContentManagmentService : IContentManagmentService
                             must.Add(m => m.MultiMatch(mm => mm
                                 .Fields(new [] { "title", "richContent" })
                                 .Query(query)
-                                .Fuzziness(new Fuzziness("AUTO"))
+                                .Fuzziness(new Fuzziness(7))
                             ));
                         }
 
@@ -540,6 +540,7 @@ public class ContentManagmentService : IContentManagmentService
                 content.CreatedOn,
                 content.UpdatedOn,
                 content.AssetUrl,
+                content.Slug,
                 content.UserId,
                 CategoryId = content.CategoryId,
                 Category = content.Category == null ? null : new { content.Category.CategoryId, content.Category.Name, content.Category.Description },
@@ -583,78 +584,15 @@ public class ContentManagmentService : IContentManagmentService
         var key = await _apiKeyService.ValidateApiKeyAsync(apiKey);
         if (key == null) throw GeneralErrorCodes.InvalidApiKey;
 
-        string cacheKey = slug;
-        string? cachedContent = await _cache.GetStringAsync(cacheKey);
-
-        if (!string.IsNullOrEmpty(cachedContent))
-        {
-             var cachedDto = JsonSerializer.Deserialize<ContentDTO>(cachedContent)!;
-             
-             if (cachedDto.UserId != key.UserId)
-             {
-                 goto FetchFromDb;
-             }
-
-             if (cachedDto.Status != "Published")
-             {
-                 throw GeneralErrorCodes.NotFound;
-             }
-             
-             return new PublicContentDTO
-             {
-                 ContentId = cachedDto.ContentId,
-                 AssetUrl = cachedDto.AssetUrl,
-                 Title = cachedDto.Title,
-                 Slug = cachedDto.Slug,
-                 RichContent = cachedDto.RichContent,
-                 Status = cachedDto.Status,
-                 CreatedOn = cachedDto.CreatedOn,
-                 UpdatedOn = cachedDto.UpdatedOn,
-                 UserId = cachedDto.UserId,
-                 Category = cachedDto.CategoryId.HasValue ? new CategoryDTO 
-                 { 
-                     CategoryId = cachedDto.CategoryId.Value, 
-                     Name = cachedDto.CategoryName ?? "",
-                     Description = null 
-                 } : null,
-                 Tags = cachedDto.Tags
-             };
-        }
-
-        FetchFromDb:
         var content = await _dbContext.Contents
-            .Include(c => c.Category)
-            .Include(c => c.Tags)
             .FirstOrDefaultAsync(c => c.Slug == slug && c.Status == "Published");
 
         if (content == null) throw GeneralErrorCodes.NotFound;
         
         if (content.UserId != key.UserId)
         {
-             // Do not cache this 404 to prevent overwriting valid cache for the owner.
              throw GeneralErrorCodes.NotFound;
         }
-
-        var contentDto = new ContentDTO
-        {
-            ContentId = content.ContentId,
-            AssetUrl = content.AssetUrl,
-            Status = content.Status,
-            Title = content.Title,
-            Slug = content.Slug,
-            RichContent = content.RichContent,
-            UserId = content.UserId,
-            CategoryId = content.CategoryId,
-            CategoryName = content.Category?.Name,
-            CreatedOn = content.CreatedOn,
-            UpdatedOn = content.UpdatedOn,
-            Tags = content.Tags.Select(t => new TagDTO { TagId = t.TagId, Name = t.Name }).ToList()
-        };
-
-        await _cache.SetStringAsync(cacheKey, JsonSerializer.Serialize(contentDto), new DistributedCacheEntryOptions
-        {
-            AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10)
-        });
 
         return new PublicContentDTO
         {

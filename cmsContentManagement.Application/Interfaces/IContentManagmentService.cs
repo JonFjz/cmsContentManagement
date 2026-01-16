@@ -6,7 +6,7 @@ namespace cmsContentManagement.Application.Interfaces;
 public interface IContentManagmentService
 {
     public Task<Guid> GenerateNewContentId(Guid userId);
-    public Task<ContentDTO> getContentById(Guid userId, Guid contentId);
+    public Task<Content> getContentById(Guid userId, Guid contentId);
     public Task<List<ContentDTO>> FilterContents(Guid userId, string? query, string? tag, string? category, string? status, DateTime? fromDate, DateTime? toDate, int page, int pageSize, bool withElastic = false);
     public Task DeleteContent(Guid userId, Guid contentId);
     public Task UnpublishContent(Guid userId, Guid contentId);

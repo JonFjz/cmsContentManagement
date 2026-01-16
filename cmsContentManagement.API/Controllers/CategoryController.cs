@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace cmsContentManagement.API.Controllers;
 
 [ApiController]
-[Route("[controller]")]
+[Route("category")]
 [Authorize]
 public class CategoryController : ControllerBase
 {
