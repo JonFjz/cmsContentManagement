@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using System.Linq;
 using cmsContentManagement.API.Extensions;
 using cmsContentManagement.Application.DTO;
 using cmsContentManagement.Application.Interfaces;
@@ -6,24 +7,26 @@ using cmsContentManagement.Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace cmsContentManagment.Controllers;
+namespace cmsContentManagement.API.Controllers;
 
 [ApiController]
-[Route("[controller]")]
+[Route("entry")]
 [Authorize]
-public class ContentManagmentController : ControllerBase
+public class ContentManagementController : ControllerBase
 {
     private readonly IContentManagmentService _contentManagmentService;
 
-    public ContentManagmentController(IContentManagmentService contentManagmentService)
+    public ContentManagementController(IContentManagmentService contentManagmentService)
     {
         _contentManagmentService = contentManagmentService;
     }
 
     [HttpGet("{contentId}")]
-    public async Task<ContentDTO> GetContents(Guid contentId)
+    public async Task<ActionResult<ContentDTO>> GetContent(Guid contentId)
     {
-        return await _contentManagmentService.getContentById(User.GetUserId(), contentId);
+        var content = await _contentManagmentService.getContentById(User.GetUserId(), contentId);
+        if (content == null) return NotFound();
+        return Ok(MapToDto(content));
     }
 
     [HttpGet]
@@ -57,14 +60,35 @@ public class ContentManagmentController : ControllerBase
     }
 
     [HttpDelete("{contentId}")]
-    public async Task DeleteContent(Guid contentId)
+    public async Task<IActionResult> DeleteContent(Guid contentId)
     {
         await _contentManagmentService.DeleteContent(User.GetUserId(), contentId);
+        return Ok();
     }
 
-    [HttpGet("generate-new-id")]
-    public async Task<Guid> GenerateNewContentId()
+    [HttpGet("new-id")]
+    public async Task<ActionResult<Guid>> GenerateNewContentId()
     {
-        return await _contentManagmentService.GenerateNewContentId(User.GetUserId());
+        var id = await _contentManagmentService.GenerateNewContentId(User.GetUserId());
+        return Ok(id);
+    }
+
+    private ContentDTO MapToDto(Content content)
+    {
+        return new ContentDTO
+        {
+            ContentId = content.ContentId,
+            AssetUrl = content.AssetUrl,
+            Status = content.Status,
+            Title = content.Title,
+            Slug = content.Slug,
+            RichContent = content.RichContent,
+            UserId = content.UserId,
+            CategoryId = content.CategoryId,
+            CategoryName = content.Category?.Name,
+            CreatedOn = content.CreatedOn,
+            UpdatedOn = content.UpdatedOn,
+            Tags = content.Tags?.Select(t => new TagDTO { TagId = t.TagId, Name = t.Name }).ToList() ?? new List<TagDTO>()
+        };
     }
 }

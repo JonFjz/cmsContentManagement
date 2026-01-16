@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cms-content-management
+  namespace: cms
+  labels:
+    app: cms-content-management
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cms-content-management
+  template:
+    metadata:
+      labels:
+        app: cms-content-management
+    spec:
+      containers:
+        - name: cms-content-management
+          image: cmscontentmanagement:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8080
+              protocol: TCP
+          env:
+            - name: ConnectionStrings__DefaultConnection
+              value: "Server=mysql;Database=auth;Uid=user;Pwd=alskjdfa@alskdjfAAAb12;"
+            
+            - name: Redis__Connection
+              value: "redis:6379"
+            
+            - name: KafkaSettings__BootstrapServers
+              value: "kafka-1768077348-headless:9092"
+            - name: KafkaSettings__Topic
+              value: "files.uploaded"
+            
+            - name: ElasticSettings__Url
+              value: "http://elasticsearch:9200"
+
+            - name: JwtSettings__Issuer
+              value: "cms"
+            - name: JwtSettings__Audience
+              value: "account"
+            - name: JwtSettings__ExpiryMinutes
+              value: "60"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cms-content-management
+  namespace: cms
+spec:
+  type: ClusterIP
+  selector:
+    app: cms-content-management
+  ports:
+    - port: 80
+      targetPort: 8080
