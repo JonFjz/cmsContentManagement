@@ -539,8 +539,7 @@ public class ContentManagmentService : IContentManagmentService
                 content.Status,
                 content.CreatedOn,
                 content.UpdatedOn,
-                content.AssetUrl,
-                content.Slug,
+                
                 content.UserId,
                 CategoryId = content.CategoryId,
                 Category = content.Category == null ? null : new { content.Category.CategoryId, content.Category.Name, content.Category.Description },
