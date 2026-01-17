@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: cms-content-management
-          image: cmscontentmanagement:latest
+          image: cmscontentmanagement:${IMAGE_TAG}
           imagePullPolicy: Never
           ports:
             - containerPort: 8080
