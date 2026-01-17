@@ -21,6 +21,7 @@ services:
     networks:
       - cmscontentnetwork
       - kafka-net
+      - elastic
 
   mysql:
     image: mysql:8.0

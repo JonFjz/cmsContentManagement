@@ -40,13 +40,13 @@ builder.Services.AddSwaggerGen(c =>
         }
     });
 });
+
 string? redisOptionsConfiguration = builder.Configuration["Redis:Connection"];
 string? connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString))
 );
-
 
 builder.Services.AddStackExchangeRedisCache(redisOptions =>
 {
@@ -74,6 +74,17 @@ builder.Services.AddSingleton(sp =>
     return new ElasticsearchClient(clientSettings);
 });
 
+var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowSpecificOrigins", policy =>
+    {
+        policy.WithOrigins(allowedOrigins)
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials();
+    });
+});
 
 builder.Services.AddControllers();
 builder.Services.AddScoped<IContentManagmentService, ContentManagmentService>();
@@ -85,15 +96,18 @@ builder.Services.Configure<KafkaSettings>(builder.Configuration.GetSection("Kafk
 builder.Services.AddHostedService<KafkaConsumerService>();
 
 var app = builder.Build();
-app.UseMiddleware<ErrorHandlingMiddleware>();
-app.UseMiddleware<JwtValidationMiddleware>();
 
+app.UseMiddleware<ErrorHandlingMiddleware>();
+// Enable CORS early so preflight (OPTIONS) requests are handled before
+// the JWT validation middleware can reject them.
+app.UseCors("AllowSpecificOrigins");
+app.UseMiddleware<JwtValidationMiddleware>();
 
 app.UseSwagger();
 app.UseSwaggerUI();
 
-app.UseAuthorization();
 app.UseAuthentication();
+app.UseAuthorization();
 
 app.UseHttpsRedirection();
 app.MapControllers();

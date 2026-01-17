@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace cmsContentManagement.API.Controllers;
 
 [ApiController]
-[Route("[controller]")]
+[Route("tag")]
 [Authorize]
 public class TagController : ControllerBase
 {

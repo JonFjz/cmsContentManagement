@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace cmsContentManagement.API.Controllers;
 
 [ApiController]
-[Route("[controller]")]
+[Route("api-key")]
 [Authorize]
 public class ApiKeyController : ControllerBase
 {
