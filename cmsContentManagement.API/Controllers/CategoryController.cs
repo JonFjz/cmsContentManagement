@@ -3,6 +3,7 @@ using cmsContentManagement.Application.Interfaces;
 using cmsContentManagement.Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using cmsContentManagement.API.Extensions;
 
 namespace cmsContentManagement.API.Controllers;
 
@@ -19,9 +20,9 @@ public class CategoryController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<List<Category>> GetAllCategories([FromQuery] int page = 1, [FromQuery] int pageSize = 10)
+    public async Task<List<CategoryResponseDTO>> GetAllCategories([FromQuery] int page = 1, [FromQuery] int pageSize = 10, [FromQuery] string? search = null)
     {
-        return await _categoryService.GetAllCategories(page, pageSize);
+        return await _categoryService.GetAllCategories(User.GetUserId(), page, pageSize, search);
     }
 
     [HttpGet("{id}")]
@@ -33,9 +34,16 @@ public class CategoryController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<Category> CreateCategory(CreateCategoryDTO categoryDto)
+    public async Task<ActionResult<Category>> CreateCategory(CreateCategoryDTO categoryDto)
     {
-        return await _categoryService.CreateCategory(categoryDto);
+        try
+        {
+            return await _categoryService.CreateCategory(User.GetUserId(), categoryDto);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(new { message = ex.Message });
+        }
     }
 
     [HttpPut]

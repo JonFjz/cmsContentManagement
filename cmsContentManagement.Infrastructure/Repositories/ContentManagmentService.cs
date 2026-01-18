@@ -274,18 +274,15 @@ public class ContentManagmentService : IContentManagmentService
 
         contentToBeUpdated.AssetUrl = content.AssetUrl;
         
-        if (!string.IsNullOrWhiteSpace(content.CategoryName))
+        bool canBePublished = true;
+
+        if (content.CategoryId.HasValue)
         {
-            var category = await _dbContext.Categories.FirstOrDefaultAsync(c => c.Name == content.CategoryName);
+            var category = await _dbContext.Categories.FirstOrDefaultAsync(c => c.CategoryId == content.CategoryId.Value && c.UserId == contentToBeUpdated.UserId);
             if (category == null)
             {
-                category = new Category
-                {
-                    CategoryId = Guid.NewGuid(),
-                    Name = content.CategoryName,
-                    Description = "Created automatically"
-                };
-                _dbContext.Categories.Add(category);
+               canBePublished = false;
+               // throw new Exception($"Category with ID '{content.CategoryId}' does not exist."); 
             }
             contentToBeUpdated.Category = category;
         }
@@ -294,30 +291,39 @@ public class ContentManagmentService : IContentManagmentService
             contentToBeUpdated.CategoryId = null;
         }
 
-        if (!string.IsNullOrWhiteSpace(contentToBeUpdated.Title) && !string.IsNullOrWhiteSpace(contentToBeUpdated.RichContent))
-        {
-            contentToBeUpdated.Status = "Published";
-        }
-        else
-        {
-            contentToBeUpdated.Status = "Draft";
-        }
-
-        contentToBeUpdated.UpdatedOn = DateTime.UtcNow;
-
         contentToBeUpdated.Tags.Clear();
         if (content.Tags != null && content.Tags.Any())
         {
-            foreach (var tagName in content.Tags)
+            foreach (var tagDto in content.Tags)
             {
-                var tag = await _dbContext.Tags.FirstOrDefaultAsync(t => t.Name == tagName);
+                var tag = await _dbContext.Tags.FirstOrDefaultAsync(t => t.TagId == tagDto.TagId && t.UserId == contentToBeUpdated.UserId);
                 if (tag == null)
                 {
-                    throw new Exception($"Tag '{tagName}' does not exist.");
+                   canBePublished = false;
+                   // throw new Exception($"Tag with ID '{tagDto.TagId}' does not exist.");
                 }
-                contentToBeUpdated.Tags.Add(tag);
+                else 
+                {
+                    contentToBeUpdated.Tags.Add(tag);
+                }
             }
         }
+
+        if (content.Status == "Published")
+        {
+             if (canBePublished && !string.IsNullOrWhiteSpace(contentToBeUpdated.Title) && !string.IsNullOrWhiteSpace(contentToBeUpdated.RichContent) && contentToBeUpdated.CategoryId != null)
+             {
+                 contentToBeUpdated.Status = "Published";
+             }
+             else
+             {
+                 contentToBeUpdated.Status = "Draft";
+             }
+        }
+        else
+        {
+             contentToBeUpdated.Status = "Draft";
+        }     
 
         await _dbContext.SaveChangesAsync();
         await IndexContentAsync(contentToBeUpdated);

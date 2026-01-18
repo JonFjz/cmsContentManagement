@@ -3,6 +3,7 @@ using cmsContentManagement.Application.Interfaces;
 using cmsContentManagement.Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using cmsContentManagement.API.Extensions;
 
 namespace cmsContentManagement.API.Controllers;
 
@@ -19,9 +20,9 @@ public class TagController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<List<Tag>> GetAllTags([FromQuery] int page = 1, [FromQuery] int pageSize = 10)
+    public async Task<List<TagDTO>> GetAllTags([FromQuery] int page = 1, [FromQuery] int pageSize = 10, [FromQuery] string? search = null)
     {
-        return await _tagService.GetAllTags(page, pageSize);
+        return await _tagService.GetAllTags(User.GetUserId(), page, pageSize, search);
     }
 
     [HttpGet("{id}")]
@@ -33,9 +34,16 @@ public class TagController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<Tag> CreateTag(CreateTagDTO tagDto)
+    public async Task<ActionResult<Tag>> CreateTag(CreateTagDTO tagDto)
     {
-        return await _tagService.CreateTag(tagDto);
+        try
+        {
+            return await _tagService.CreateTag(User.GetUserId(), tagDto);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(new { message = ex.Message });
+        }
     }
 
     [HttpPut]

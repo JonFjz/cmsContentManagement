@@ -98,8 +98,6 @@ builder.Services.AddHostedService<KafkaConsumerService>();
 var app = builder.Build();
 
 app.UseMiddleware<ErrorHandlingMiddleware>();
-// Enable CORS early so preflight (OPTIONS) requests are handled before
-// the JWT validation middleware can reject them.
 app.UseCors("AllowSpecificOrigins");
 app.UseMiddleware<JwtValidationMiddleware>();
 
