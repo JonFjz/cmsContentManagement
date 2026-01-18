@@ -59,6 +59,8 @@ public class ContentManagmentService : IContentManagmentService
     public async Task<Content> getContentById(Guid userId, Guid contentId)
     {
         var content = await _dbContext.Contents
+            .Include(c => c.Category)
+            .Include(c => c.Tags)
             .FirstOrDefaultAsync(e => e.UserId == userId && e.ContentId == contentId);
         
         if (content == null) throw GeneralErrorCodes.NotFound;
