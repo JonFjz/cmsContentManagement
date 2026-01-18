@@ -311,24 +311,26 @@ public class ContentManagmentService : IContentManagmentService
             }
         }
 
-        if (content.Status == "Published")
-        {
-             if (canBePublished && !string.IsNullOrWhiteSpace(contentToBeUpdated.Title) && !string.IsNullOrWhiteSpace(contentToBeUpdated.RichContent) && contentToBeUpdated.CategoryId != null)
-             {
-                 contentToBeUpdated.Status = "Published";
-             }
-             else
-             {
-                 contentToBeUpdated.Status = "Draft";
-             }
-        }
-        else
-        {
-             contentToBeUpdated.Status = "Draft";
-        }     
+        UpdateStatusBasedOnCompleteness(contentToBeUpdated, canBePublished);
 
         await _dbContext.SaveChangesAsync();
         await IndexContentAsync(contentToBeUpdated);
+    }
+
+    private void UpdateStatusBasedOnCompleteness(Content content, bool additionalCriteria = true)
+    {
+        if (content.Status == "Deleted" || content.Status == "Unpublished")
+        {
+            return;
+        }
+
+        bool isComplete = additionalCriteria &&
+                         !string.IsNullOrWhiteSpace(content.Title) &&
+                         !string.IsNullOrWhiteSpace(content.RichContent) &&
+                         content.CategoryId != null &&
+                         !string.IsNullOrWhiteSpace(content.AssetUrl);
+
+        content.Status = isComplete ? "Published" : "Draft";
     }
 
     public async Task UnpublishContent(Guid userId, Guid contentId)
@@ -353,6 +355,7 @@ public class ContentManagmentService : IContentManagmentService
         if (content == null) throw GeneralErrorCodes.NotFound;
 
         content.AssetUrl = assetUrl;
+        UpdateStatusBasedOnCompleteness(content);
 
         await _dbContext.SaveChangesAsync();
         await IndexContentAsync(content);
@@ -367,11 +370,7 @@ public class ContentManagmentService : IContentManagmentService
         if (content == null) throw GeneralErrorCodes.NotFound;
 
         content.AssetUrl = assetUrl;
-
-        if (content.Status == "New")
-        {
-            content.Status = "Draft";
-        }
+        UpdateStatusBasedOnCompleteness(content);
 
         await _dbContext.SaveChangesAsync();
         await IndexContentAsync(content);
