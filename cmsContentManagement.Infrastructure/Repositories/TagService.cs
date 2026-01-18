@@ -15,12 +15,24 @@ public class TagService : ITagService
         _dbContext = dbContext;
     }
 
-    public async Task<List<Tag>> GetAllTags(int page, int pageSize)
+    public async Task<List<TagDTO>> GetAllTags(Guid userId, int page, int pageSize, string? searchTerm = null)
     {
-        return await _dbContext.Tags
+        var query = _dbContext.Tags.Where(t => t.UserId == userId).AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(searchTerm))
+        {
+            query = query.Where(t => t.Name.Contains(searchTerm));
+        }
+
+        return await query
             .OrderBy(t => t.Name)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
+            .Select(t => new TagDTO
+            {
+                TagId = t.TagId,
+                Name = t.Name
+            })
             .ToListAsync();
     }
 
@@ -29,11 +41,17 @@ public class TagService : ITagService
         return await _dbContext.Tags.FindAsync(id);
     }
 
-    public async Task<Tag> CreateTag(CreateTagDTO tagDto)
+    public async Task<Tag> CreateTag(Guid userId, CreateTagDTO tagDto)
     {
+        if (await _dbContext.Tags.AnyAsync(t => t.UserId == userId && t.Name == tagDto.Name))
+        {
+            throw new InvalidOperationException($"Tag with name '{tagDto.Name}' already exists.");
+        }
+
         var tag = new Tag
         {
             TagId = Guid.NewGuid(),
+            UserId = userId,
             Name = tagDto.Name
         };
         _dbContext.Tags.Add(tag);

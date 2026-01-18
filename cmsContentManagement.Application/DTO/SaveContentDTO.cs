@@ -4,7 +4,9 @@ public class SaveContentDTO
 {
     public string? AssetUrl { get; set; }
     public string? Title { get; set; }
+    public string? Status { get; set; }
     public string? RichContent {  get; set; }
+    public Guid? CategoryId { get; set; }
     public string? CategoryName { get; set; }
-    public List<string> Tags { get; set; } = new List<string>();
+    public List<TagDTO> Tags { get; set; } = new List<TagDTO>();
 }
