@@ -15,12 +15,24 @@ public class CategoryService : ICategoryService
         _dbContext = dbContext;
     }
 
-    public async Task<List<Category>> GetAllCategories(int page, int pageSize)
+    public async Task<List<CategoryResponseDTO>> GetAllCategories(Guid userId, int page, int pageSize, string? searchTerm = null)
     {
-        return await _dbContext.Categories
+        var query = _dbContext.Categories.Where(c => c.UserId == userId).AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(searchTerm))
+        {
+            query = query.Where(c => c.Name.Contains(searchTerm));
+        }
+
+        return await query
             .OrderBy(c => c.Name)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
+            .Select(c => new CategoryResponseDTO
+            {
+                CategoryId = c.CategoryId,
+                Name = c.Name
+            })
             .ToListAsync();
     }
 
@@ -29,11 +41,17 @@ public class CategoryService : ICategoryService
         return await _dbContext.Categories.FindAsync(id);
     }
 
-    public async Task<Category> CreateCategory(CreateCategoryDTO categoryDto)
+    public async Task<Category> CreateCategory(Guid userId, CreateCategoryDTO categoryDto)
     {
+        if (await _dbContext.Categories.AnyAsync(c => c.UserId == userId && c.Name == categoryDto.Name))
+        {
+            throw new InvalidOperationException($"Category with name '{categoryDto.Name}' already exists.");
+        }
+
         var category = new Category
         {
             CategoryId = Guid.NewGuid(),
+            UserId = userId,
             Name = categoryDto.Name,
             Description = categoryDto.Description
         };
